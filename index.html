@@ -5,28 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#7f2f3d">
     <meta name="description" content="İlk Türk devletleri kültür ve medeniyeti için etkileşimli tanım-cevap eşleştirme uygulaması.">
-    <title>İlk Türk Devletleri | Kültür ve Medeniyet Testi</title>
+    <title>İlk Türk Devletleri | Eşini Bul</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <main class="app-shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">KPSS Tarih Çalışması</p>
-          <h1>Kültür ve Medeniyet</h1>
-          <p class="subtitle">Tanım ile sırayla gelen cevapları karşılaştır, doğru eşleşmeyi bul ve yeni tanıma geç.</p>
-        </div>
-        <div class="scoreboard" aria-live="polite">
-          <span class="score-label">Tamamlanan</span>
-          <strong><span id="correctCount">0</span> / <span id="answeredCount">0</span></strong>
+          <p class="eyebrow">İlk Türk Devletleri</p>
+          <h1>Eşini Bul</h1>
+          <p class="subtitle">Tanım kartını doğru cevap kartıyla buluştur.</p>
         </div>
       </header>
 
       <section id="setupPanel" class="setup-panel" aria-labelledby="setupTitle">
         <div>
-          <p class="section-kicker">Yeni çalışma</p>
-          <h2 id="setupTitle">Oturumunu hazırla</h2>
-          <p>Her tanım için 10 cevap sırayla gösterilir. Bu cevaplardan yalnızca biri tanımla eşleşir.</p>
+          <p class="section-kicker">Kart destesi</p>
+          <h2 id="setupTitle">Hangi kartlarla oynayacaksın?</h2>
+          <p>Her tanımın karşısına 10 farklı cevap kartı gelir. Doğru çifti bulunca yeni tanıma geçersin.</p>
         </div>
         <div class="setup-controls">
           <label>
@@ -34,7 +30,7 @@
             <select id="topicSelect"></select>
           </label>
           <label>
-            <span>Tanım sayısı</span>
+            <span>Deste büyüklüğü</span>
             <select id="questionCountSelect">
               <option value="10">10 tanım</option>
               <option value="20" selected>20 tanım</option>
@@ -42,43 +38,51 @@
               <option value="all">Tüm tanımlar</option>
             </select>
           </label>
-          <button id="startButton" class="primary-button" type="button">Eşleştirmeye başla</button>
+          <button id="startButton" class="primary-button" type="button">Kartları karıştır</button>
         </div>
       </section>
 
       <section id="quizPanel" class="quiz-panel" hidden>
-        <div class="progress-row">
-          <div>
-            <span id="topicBadge" class="topic-badge">Tüm konular</span>
-            <span id="questionCounter" class="question-counter">Tanım 1 / 20</span>
-          </div>
-          <button id="restartButton" class="ghost-button compact" type="button">Yeni oturum</button>
-        </div>
-        <div class="progress-track" aria-hidden="true">
-          <div id="progressBar" class="progress-bar"></div>
+        <div class="game-toolbar">
+          <span id="topicBadge" class="topic-badge">Tüm konular</span>
+          <button id="restartButton" class="ghost-button compact" type="button">Desteyi değiştir</button>
         </div>
 
-        <article class="question-card">
-          <p class="card-label">TANIM</p>
-          <h2 id="questionText"></h2>
-        </article>
-
-        <article id="candidateCard" class="candidate-card" aria-live="polite">
-          <div class="candidate-heading">
-            <p class="card-label">CEVAP</p>
-            <span id="candidateCounter" class="candidate-counter">1 / 10</span>
+        <div class="game-status" aria-live="polite">
+          <div class="status-chip">
+            <span>Eşleşen</span>
+            <strong><span id="correctCount">0</span> / <span id="answeredCount">0</span></strong>
           </div>
-          <h3 id="candidateText"></h3>
-        </article>
+          <div class="status-chip error-chip">
+            <span>Hata</span>
+            <strong id="errorCount">0</strong>
+          </div>
+          <span id="questionCounter" class="question-counter">Kart çifti 1 / 20</span>
+        </div>
+
+        <div class="match-stage">
+          <article class="match-card definition-card">
+            <p class="card-label">TANIM KARTI</p>
+            <h2 id="questionText"></h2>
+          </article>
+
+          <div class="match-link" aria-hidden="true"><span>?</span></div>
+
+          <article id="candidateCard" class="match-card candidate-card" aria-live="polite">
+            <div class="candidate-heading">
+              <p class="card-label">CEVAP KARTI</p>
+              <span id="candidateCounter" class="candidate-counter">Kart 1 / 10</span>
+            </div>
+            <h3 id="candidateText"></h3>
+          </article>
+        </div>
 
         <div class="decision-grid" aria-label="Eşleşme kararı">
           <button id="noMatchButton" class="decision-button no-match-button" type="button">
-            <span aria-hidden="true">×</span>
-            Eşleşmiyor
+            Başka kart göster
           </button>
           <button id="matchButton" class="decision-button match-button" type="button">
-            <span aria-hidden="true">✓</span>
-            Eşleşiyor
+            Bu ikisini eşleştir
           </button>
         </div>
 
@@ -91,17 +95,17 @@
       </section>
 
       <section id="resultPanel" class="result-panel" hidden aria-live="polite">
-        <p class="section-kicker">Oturum tamamlandı</p>
+        <p class="section-kicker">Deste tamamlandı</p>
         <h2 id="resultTitle"></h2>
         <p id="resultText"></p>
         <div class="result-actions">
-          <button id="retryMistakesButton" class="secondary-button" type="button">Hatalı tanımları tekrar et</button>
-          <button id="newSessionButton" class="primary-button" type="button">Yeni oturum</button>
+          <button id="retryMistakesButton" class="secondary-button" type="button">Zorlandığım kartlar</button>
+          <button id="newSessionButton" class="primary-button" type="button">Yeni deste</button>
         </div>
       </section>
 
       <footer class="keyboard-tip">
-        <span>İpucu: <kbd>←</kbd> eşleşmiyor, <kbd>→</kbd> eşleşiyor.</span>
+        <span>İpucu: <kbd>←</kbd> başka kart, <kbd>→</kbd> eşleştir.</span>
       </footer>
     </main>
 

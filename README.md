@@ -1,6 +1,6 @@
-# İlk Türk Devletleri Kültür ve Medeniyet Testi
+# İlk Türk Devletleri Kültür ve Medeniyet Eşleştirme Oyunu
 
-RTF notlarındaki 102 kültür ve medeniyet bilgisini tanım-cevap eşleştirme kartlarına dönüştüren, bağımlılıksız statik web uygulaması. Her tanım için 10 cevap sırayla gösterilir ve yalnızca biri doğru eşleşmedir.
+RTF notlarındaki 102 kültür ve medeniyet bilgisini kart eşleştirme oyununa dönüştüren, bağımlılıksız statik web uygulaması. Tanım ve cevap kartları karşılıklı gösterilir; her tanım için gelen 10 cevap kartından yalnızca biri doğru eşleşmedir.
 
 Telefon, tablet ve masaüstü ekranlarına uyumludur. Kurulum veya uygulama mağazası gerektirmez.
 

@@ -159,9 +159,9 @@ const els = {
   restartButton: document.querySelector("#restartButton"),
   correctCount: document.querySelector("#correctCount"),
   answeredCount: document.querySelector("#answeredCount"),
+  errorCount: document.querySelector("#errorCount"),
   topicBadge: document.querySelector("#topicBadge"),
   questionCounter: document.querySelector("#questionCounter"),
-  progressBar: document.querySelector("#progressBar"),
   questionText: document.querySelector("#questionText"),
   candidateCard: document.querySelector("#candidateCard"),
   candidateCounter: document.querySelector("#candidateCounter"),
@@ -202,7 +202,7 @@ function startSession(customQuestions = null) {
 
   if (customQuestions) {
     state.session = shuffle(customQuestions);
-    state.selectedTopic = { id: "mistakes", name: "Yanlış cevaplar" };
+    state.selectedTopic = { id: "mistakes", name: "Zorlandığım kartlar" };
   } else {
     const pool = shuffle(getQuestionPool(state.selectedTopic.id));
     const requestedCount = els.questionCountSelect.value === "all"
@@ -262,14 +262,13 @@ function renderQuestion() {
   state.candidateIndex = 0;
 
   els.topicBadge.textContent = state.selectedTopic.name;
-  els.questionCounter.textContent = `Tanım ${state.index + 1} / ${state.session.length}`;
-  els.progressBar.style.width = `${(state.index / state.session.length) * 100}%`;
+  els.questionCounter.textContent = `Kart çifti ${state.index + 1} / ${state.session.length}`;
   els.questionText.textContent = question.prompt;
   renderCandidate();
 }
 
 function renderCandidate() {
-  els.candidateCounter.textContent = `${state.candidateIndex + 1} / ${state.candidateDeck.length}`;
+  els.candidateCounter.textContent = `Kart ${state.candidateIndex + 1} / ${state.candidateDeck.length}`;
   els.candidateText.textContent = state.candidateDeck[state.candidateIndex];
   els.candidateCard.classList.remove("is-correct", "is-wrong");
   els.feedbackPanel.hidden = true;
@@ -282,6 +281,7 @@ function renderCandidate() {
 function updateScore() {
   els.correctCount.textContent = String(state.solved);
   els.answeredCount.textContent = String(state.session.length || 0);
+  els.errorCount.textContent = String(state.errors);
 }
 
 function rememberMistake(question) {
@@ -292,14 +292,15 @@ function rememberMistake(question) {
 
 function showDecisionError(question, actualMatch) {
   state.errors += 1;
+  updateScore();
   rememberMistake(question);
   els.candidateCard.classList.add("is-wrong");
   els.feedbackPanel.hidden = false;
   els.feedbackPanel.classList.add("is-wrong");
-  els.feedbackTitle.textContent = "Tekrar düşün";
+  els.feedbackTitle.textContent = "Bu çift olmadı";
   els.feedbackText.textContent = actualMatch
-    ? "Bu cevap tanımla eşleşiyor."
-    : "Bu cevap tanımla eşleşmiyor.";
+    ? "Aslında doğru çifti bulmuştun. Bu iki kartı eşleştir."
+    : "Bu cevap başka bir tanıma ait. Yeni bir cevap kartı göster.";
 }
 
 function completeDefinition() {
@@ -339,18 +340,17 @@ function showResults() {
 
   els.quizPanel.hidden = true;
   els.resultPanel.hidden = false;
-  els.resultTitle.textContent = `${total} tanımı eşleştirdin`;
+  els.resultTitle.textContent = `${total} kart çiftini buldun`;
 
   if (state.errors === 0) {
-    els.resultText.textContent = "Kusursuz bir oturum. Tüm eşleşme kararların doğruydu.";
+    els.resultText.textContent = "Tüm kartları hiç hata yapmadan eşleştirdin.";
   } else if (state.mistakes.length === 1) {
-    els.resultText.textContent = `${state.errors} hatalı karar verdin. Bu tanımı tekrar ederek bilgiyi sağlamlaştırabilirsin.`;
+    els.resultText.textContent = `${state.errors} kez yanlış kartı denedin. Zorlandığın kartı tekrar görebilirsin.`;
   } else {
-    els.resultText.textContent = `${state.errors} hatalı karar verdin. ${state.mistakes.length} tanımı tekrar edebilirsin.`;
+    els.resultText.textContent = `${state.errors} kez yanlış kartı denedin. ${state.mistakes.length} kart çiftini tekrar edebilirsin.`;
   }
 
   els.retryMistakesButton.hidden = state.mistakes.length === 0;
-  els.progressBar.style.width = "100%";
 }
 
 function showSetup() {
