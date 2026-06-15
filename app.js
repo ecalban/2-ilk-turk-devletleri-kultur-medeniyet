@@ -118,6 +118,10 @@ function normalizeAnswer(value) {
   return value.trim().replace(/[.]+$/, "").toLocaleLowerCase("tr-TR");
 }
 
+function getAnswerKey(value) {
+  return normalizeAnswer(value).replace(/\s*\([^)]*\)\s*/g, " ").trim();
+}
+
 function getTopicForId(id) {
   return TOPICS.find((topic) => topic.id !== "all" && id >= topic.from && id <= topic.to);
 }
@@ -137,9 +141,10 @@ const QUESTIONS = RAW_NOTES.trim().split("\n").map((line, index) => {
 const state = {
   session: [],
   index: 0,
-  correct: 0,
-  answered: 0,
-  answeredCurrent: false,
+  solved: 0,
+  errors: 0,
+  candidateDeck: [],
+  candidateIndex: 0,
   mistakes: [],
   selectedTopic: TOPICS[0],
 };
@@ -154,16 +159,18 @@ const els = {
   restartButton: document.querySelector("#restartButton"),
   correctCount: document.querySelector("#correctCount"),
   answeredCount: document.querySelector("#answeredCount"),
-  totalQuestionCount: document.querySelector("#totalQuestionCount"),
   topicBadge: document.querySelector("#topicBadge"),
   questionCounter: document.querySelector("#questionCounter"),
   progressBar: document.querySelector("#progressBar"),
   questionText: document.querySelector("#questionText"),
-  answerGrid: document.querySelector("#answerGrid"),
+  candidateCard: document.querySelector("#candidateCard"),
+  candidateCounter: document.querySelector("#candidateCounter"),
+  candidateText: document.querySelector("#candidateText"),
+  noMatchButton: document.querySelector("#noMatchButton"),
+  matchButton: document.querySelector("#matchButton"),
   feedbackPanel: document.querySelector("#feedbackPanel"),
   feedbackTitle: document.querySelector("#feedbackTitle"),
   feedbackText: document.querySelector("#feedbackText"),
-  nextButton: document.querySelector("#nextButton"),
   resultTitle: document.querySelector("#resultTitle"),
   resultText: document.querySelector("#resultText"),
   retryMistakesButton: document.querySelector("#retryMistakesButton"),
@@ -205,9 +212,10 @@ function startSession(customQuestions = null) {
   }
 
   state.index = 0;
-  state.correct = 0;
-  state.answered = 0;
-  state.answeredCurrent = false;
+  state.solved = 0;
+  state.errors = 0;
+  state.candidateDeck = [];
+  state.candidateIndex = 0;
   state.mistakes = [];
 
   els.setupPanel.hidden = true;
@@ -217,137 +225,128 @@ function startSession(customQuestions = null) {
   renderQuestion();
 }
 
-function buildChoices(question) {
+function buildCandidateDeck(question) {
   const blockedAnswers = new Set(
     QUESTIONS
       .filter((item) => item.prompt === question.prompt)
-      .map((item) => normalizeAnswer(item.answer))
+      .map((item) => getAnswerKey(item.answer))
   );
 
   const sameTopic = QUESTIONS.filter((item) => (
     item.id !== question.id
     && item.topic === question.topic
-    && !blockedAnswers.has(normalizeAnswer(item.answer))
+    && !blockedAnswers.has(getAnswerKey(item.answer))
   ));
   const otherTopics = QUESTIONS.filter((item) => (
     item.id !== question.id
     && item.topic !== question.topic
-    && !blockedAnswers.has(normalizeAnswer(item.answer))
+    && !blockedAnswers.has(getAnswerKey(item.answer))
   ));
   const uniqueCandidates = [];
   const seen = new Set(blockedAnswers);
 
   shuffle(sameTopic).concat(shuffle(otherTopics)).forEach((item) => {
-    const normalized = normalizeAnswer(item.answer);
-    if (!seen.has(normalized)) {
-      seen.add(normalized);
+    const answerKey = getAnswerKey(item.answer);
+    if (!seen.has(answerKey)) {
+      seen.add(answerKey);
       uniqueCandidates.push(item.answer);
     }
   });
 
-  return shuffle([question.answer, ...uniqueCandidates.slice(0, 3)]);
-}
-
-function formatPrompt(prompt) {
-  return /[?.!]$/.test(prompt) ? prompt : `${prompt}?`;
+  return shuffle([question.answer, ...uniqueCandidates.slice(0, 9)]);
 }
 
 function renderQuestion() {
   const question = state.session[state.index];
-  const choices = buildChoices(question);
-  state.answeredCurrent = false;
+  state.candidateDeck = buildCandidateDeck(question);
+  state.candidateIndex = 0;
 
   els.topicBadge.textContent = state.selectedTopic.name;
-  els.questionCounter.textContent = `Soru ${state.index + 1} / ${state.session.length}`;
+  els.questionCounter.textContent = `Tanım ${state.index + 1} / ${state.session.length}`;
   els.progressBar.style.width = `${(state.index / state.session.length) * 100}%`;
-  els.questionText.textContent = formatPrompt(question.prompt);
-  els.feedbackPanel.hidden = true;
-  els.feedbackPanel.classList.remove("is-wrong");
-  els.nextButton.textContent = state.index === state.session.length - 1 ? "Sonucu gör" : "Sonraki soru";
-  els.answerGrid.innerHTML = "";
-
-  choices.forEach((answer, index) => {
-    const button = document.createElement("button");
-    const key = document.createElement("span");
-    const text = document.createElement("span");
-    button.className = "answer-button";
-    button.type = "button";
-    button.dataset.answer = answer;
-    key.className = "answer-key";
-    key.textContent = String(index + 1);
-    text.textContent = answer;
-    button.append(key, text);
-    button.addEventListener("click", () => selectAnswer(button, question));
-    els.answerGrid.append(button);
-  });
-
-  els.answerGrid.querySelector(".answer-button")?.focus({ preventScroll: true });
+  els.questionText.textContent = question.prompt;
+  renderCandidate();
 }
 
-function selectAnswer(selectedButton, question) {
-  if (state.answeredCurrent) {
-    return;
-  }
-
-  state.answeredCurrent = true;
-  state.answered += 1;
-  const isCorrect = normalizeAnswer(selectedButton.dataset.answer) === normalizeAnswer(question.answer);
-
-  els.answerGrid.querySelectorAll(".answer-button").forEach((button) => {
-    button.disabled = true;
-    if (normalizeAnswer(button.dataset.answer) === normalizeAnswer(question.answer)) {
-      button.classList.add("correct");
-    }
-  });
-
-  if (isCorrect) {
-    state.correct += 1;
-    els.feedbackTitle.textContent = "Doğru bildin";
-    els.feedbackText.textContent = question.answer;
-  } else {
-    selectedButton.classList.add("wrong");
-    state.mistakes.push(question);
-    els.feedbackPanel.classList.add("is-wrong");
-    els.feedbackTitle.textContent = "Yanlış cevap";
-    els.feedbackText.textContent = `Doğru cevap: ${question.answer}`;
-  }
-
-  els.feedbackPanel.hidden = false;
-  updateScore();
-  els.nextButton.focus({ preventScroll: true });
+function renderCandidate() {
+  els.candidateCounter.textContent = `${state.candidateIndex + 1} / ${state.candidateDeck.length}`;
+  els.candidateText.textContent = state.candidateDeck[state.candidateIndex];
+  els.candidateCard.classList.remove("is-correct", "is-wrong");
+  els.feedbackPanel.hidden = true;
+  els.feedbackPanel.classList.remove("is-wrong");
+  els.noMatchButton.disabled = false;
+  els.matchButton.disabled = false;
+  els.noMatchButton.focus({ preventScroll: true });
 }
 
 function updateScore() {
-  els.correctCount.textContent = String(state.correct);
-  els.answeredCount.textContent = String(state.answered);
+  els.correctCount.textContent = String(state.solved);
+  els.answeredCount.textContent = String(state.session.length || 0);
 }
 
-function goNext() {
-  if (!state.answeredCurrent) {
-    return;
+function rememberMistake(question) {
+  if (!state.mistakes.some((item) => item.id === question.id)) {
+    state.mistakes.push(question);
   }
+}
+
+function showDecisionError(question, actualMatch) {
+  state.errors += 1;
+  rememberMistake(question);
+  els.candidateCard.classList.add("is-wrong");
+  els.feedbackPanel.hidden = false;
+  els.feedbackPanel.classList.add("is-wrong");
+  els.feedbackTitle.textContent = "Tekrar düşün";
+  els.feedbackText.textContent = actualMatch
+    ? "Bu cevap tanımla eşleşiyor."
+    : "Bu cevap tanımla eşleşmiyor.";
+}
+
+function completeDefinition() {
+  state.solved += 1;
+  updateScore();
+
   if (state.index >= state.session.length - 1) {
     showResults();
     return;
   }
+
   state.index += 1;
   renderQuestion();
 }
 
+function judgeCandidate(userSaysMatch) {
+  const question = state.session[state.index];
+  const candidate = state.candidateDeck[state.candidateIndex];
+  const actualMatch = normalizeAnswer(candidate) === normalizeAnswer(question.answer);
+
+  if (userSaysMatch !== actualMatch) {
+    showDecisionError(question, actualMatch);
+    return;
+  }
+
+  if (actualMatch) {
+    completeDefinition();
+    return;
+  }
+
+  state.candidateIndex += 1;
+  renderCandidate();
+}
+
 function showResults() {
   const total = state.session.length;
-  const percentage = Math.round((state.correct / total) * 100);
 
   els.quizPanel.hidden = true;
   els.resultPanel.hidden = false;
-  els.resultTitle.textContent = `${state.correct} / ${total} doğru · %${percentage}`;
+  els.resultTitle.textContent = `${total} tanımı eşleştirdin`;
 
-  if (percentage === 100) {
-    els.resultText.textContent = "Kusursuz bir oturum. Bu bölümdeki tüm cevapları doğru bildin.";
-  } else if (percentage >= 75) {
-    els.resultText.textContent = `Gayet iyi gidiyor. ${state.mistakes.length} soruyu tekrar ederek bilgileri sağlamlaştırabilirsin.`;
+  if (state.errors === 0) {
+    els.resultText.textContent = "Kusursuz bir oturum. Tüm eşleşme kararların doğruydu.";
+  } else if (state.mistakes.length === 1) {
+    els.resultText.textContent = `${state.errors} hatalı karar verdin. Bu tanımı tekrar ederek bilgiyi sağlamlaştırabilirsin.`;
   } else {
-    els.resultText.textContent = `${state.mistakes.length} soruyu tekrar etmek bu konudaki boşlukları hızlıca kapatacaktır.`;
+    els.resultText.textContent = `${state.errors} hatalı karar verdin. ${state.mistakes.length} tanımı tekrar edebilirsin.`;
   }
 
   els.retryMistakesButton.hidden = state.mistakes.length === 0;
@@ -369,24 +368,24 @@ function retryMistakes() {
 }
 
 function handleKeyboard(event) {
-  if (!els.quizPanel.hidden && !state.answeredCurrent && ["1", "2", "3", "4"].includes(event.key)) {
+  if (!els.quizPanel.hidden && event.key === "ArrowLeft") {
     event.preventDefault();
-    els.answerGrid.querySelectorAll(".answer-button")[Number(event.key) - 1]?.click();
+    judgeCandidate(false);
     return;
   }
-  if (!els.quizPanel.hidden && state.answeredCurrent && event.key === "Enter") {
+  if (!els.quizPanel.hidden && event.key === "ArrowRight") {
     event.preventDefault();
-    goNext();
+    judgeCandidate(true);
   }
 }
 
 els.startButton.addEventListener("click", () => startSession());
 els.restartButton.addEventListener("click", showSetup);
-els.nextButton.addEventListener("click", goNext);
+els.noMatchButton.addEventListener("click", () => judgeCandidate(false));
+els.matchButton.addEventListener("click", () => judgeCandidate(true));
 els.retryMistakesButton.addEventListener("click", retryMistakes);
 els.newSessionButton.addEventListener("click", showSetup);
 document.addEventListener("keydown", handleKeyboard);
 
-els.totalQuestionCount.textContent = String(QUESTIONS.length);
 renderTopicOptions();
 updateScore();

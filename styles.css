@@ -169,7 +169,7 @@ select {
 .ghost-button { border: 1px solid var(--line); color: var(--ink); background: white; }
 .compact { min-height: 38px; padding-inline: 13px; font-size: 0.88rem; }
 
-.primary-button:active, .secondary-button:active, .ghost-button:active, .answer-button:active {
+.primary-button:active, .secondary-button:active, .ghost-button:active, .decision-button:active {
   transform: translateY(1px);
 }
 
@@ -238,56 +238,86 @@ button:disabled { cursor: not-allowed; opacity: 0.58; }
   letter-spacing: -0.025em;
 }
 
-.answer-grid {
+.candidate-card {
+  min-height: 142px;
+  display: grid;
+  align-content: center;
+  border: 1px solid #d8d0c2;
+  border-radius: 12px;
+  margin-top: 14px;
+  padding: 22px 24px;
+  color: var(--ink);
+  background: linear-gradient(145deg, rgba(54, 93, 136, 0.07), transparent 64%), white;
+  box-shadow: 0 7px 18px rgba(43, 40, 34, 0.05);
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.candidate-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.candidate-heading .card-label { margin-bottom: 0; }
+
+.candidate-counter {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.candidate-card h3 {
+  margin: 15px 0 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.18rem, 3.2vw, 1.75rem);
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.candidate-card.is-wrong {
+  border-color: rgba(178, 60, 66, 0.55);
+  background: #fff4f4;
+}
+
+.decision-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   margin-top: 14px;
 }
 
-.answer-button {
-  display: grid;
-  grid-template-columns: 34px 1fr;
+.decision-button {
+  min-height: 58px;
+  display: flex;
   align-items: center;
-  gap: 11px;
-  min-height: 76px;
-  border: 1px solid #d8d0c2;
-  border-radius: 12px;
-  padding: 12px;
-  color: var(--ink);
-  background: white;
-  box-shadow: 0 7px 18px rgba(43, 40, 34, 0.05);
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  padding: 10px 16px;
+  color: white;
+  font-weight: 850;
   cursor: pointer;
-  text-align: left;
-  line-height: 1.35;
-  font-weight: 760;
-  overflow-wrap: anywhere;
-  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease, background 150ms ease;
+  transition: transform 150ms ease, filter 150ms ease, box-shadow 150ms ease;
 }
 
-.answer-button:hover:not(:disabled), .answer-button:focus-visible {
-  border-color: var(--burgundy);
-  box-shadow: 0 8px 22px rgba(127, 47, 61, 0.14);
+.decision-button span {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.decision-button:hover, .decision-button:focus-visible {
+  filter: brightness(0.96);
+  box-shadow: 0 8px 20px rgba(43, 40, 34, 0.13);
   outline: 0;
 }
 
-.answer-key {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  color: white;
-  background: #697572;
-  font-weight: 900;
-}
-
-.answer-button.correct { border-color: rgba(29, 112, 77, 0.55); background: #edf8f2; }
-.answer-button.correct .answer-key { background: var(--green); }
-.answer-button.wrong { border-color: rgba(178, 60, 66, 0.55); background: #fff0f1; }
-.answer-button.wrong .answer-key { background: var(--red); }
+.no-match-button { background: var(--red); }
+.match-button { background: var(--green); }
 
 .feedback-panel {
+  display: block;
   margin-top: 14px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -336,8 +366,8 @@ kbd {
   .setup-panel { grid-template-columns: 1fr; gap: 20px; padding: 19px; }
   .quiz-panel { padding: 14px; }
   .question-card { min-height: 152px; padding: 20px 17px; }
-  .answer-grid { grid-template-columns: 1fr; gap: 9px; }
-  .answer-button { min-height: 62px; }
+  .candidate-card { min-height: 128px; padding: 18px; }
+  .decision-button { min-height: 56px; }
   select { min-height: 52px; font-size: 1rem; }
   .primary-button, .secondary-button, .ghost-button { min-height: 48px; }
   .compact { min-height: 44px; }
@@ -367,6 +397,8 @@ kbd {
   .scoreboard { min-width: 82px; }
   .setup-panel, .quiz-panel { border-radius: 14px; }
   .topic-badge { max-width: 170px; }
+  .decision-grid { gap: 8px; }
+  .decision-button { padding-inline: 9px; font-size: 0.9rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
