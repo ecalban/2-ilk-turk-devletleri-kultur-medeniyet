@@ -6,7 +6,7 @@ Telefon, tablet ve masaüstü ekranlarına uyumludur. Kurulum veya uygulama mağ
 
 ## Canlı sürüm
 
-[Uygulamayı aç](https://ecalban.github.io/2-ilk-t-rk-devletleri-k-lt-r-medeniyet/)
+[Uygulamayı aç](https://ecalban.github.io/2-ilk-turk-devletleri-kultur-medeniyet/)
 
 ## Çalıştırma
 
