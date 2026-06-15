@@ -4,6 +4,10 @@ RTF notlarındaki 102 kültür ve medeniyet bilgisini dört seçenekli çalışm
 
 Telefon, tablet ve masaüstü ekranlarına uyumludur. Kurulum veya uygulama mağazası gerektirmez.
 
+## Canlı sürüm
+
+[Uygulamayı aç](https://ecalban.github.io/2-ilk-t-rk-devletleri-k-lt-r-medeniyet/)
+
 ## Çalıştırma
 
 `index.html` dosyasını doğrudan tarayıcıda açabilir veya klasörde yerel bir sunucu başlatabilirsiniz:
