@@ -144,7 +144,8 @@ const state = {
   solved: 0,
   errors: 0,
   candidateDeck: [],
-  candidateIndex: 0,
+  selectedCandidate: null,
+  completedQuestionIds: new Set(),
   mistakes: [],
   selectedTopic: TOPICS[0],
 };
@@ -162,11 +163,9 @@ const els = {
   errorCount: document.querySelector("#errorCount"),
   topicBadge: document.querySelector("#topicBadge"),
   questionCounter: document.querySelector("#questionCounter"),
+  definitionCard: document.querySelector("#definitionCard"),
   questionText: document.querySelector("#questionText"),
-  candidateCard: document.querySelector("#candidateCard"),
-  candidateCounter: document.querySelector("#candidateCounter"),
-  candidateText: document.querySelector("#candidateText"),
-  noMatchButton: document.querySelector("#noMatchButton"),
+  answerGrid: document.querySelector("#answerGrid"),
   matchButton: document.querySelector("#matchButton"),
   feedbackPanel: document.querySelector("#feedbackPanel"),
   feedbackTitle: document.querySelector("#feedbackTitle"),
@@ -215,7 +214,8 @@ function startSession(customQuestions = null) {
   state.solved = 0;
   state.errors = 0;
   state.candidateDeck = [];
-  state.candidateIndex = 0;
+  state.selectedCandidate = null;
+  state.completedQuestionIds = new Set();
   state.mistakes = [];
 
   els.setupPanel.hidden = true;
@@ -232,20 +232,29 @@ function buildCandidateDeck(question) {
       .map((item) => getAnswerKey(item.answer))
   );
 
-  const sameTopic = QUESTIONS.filter((item) => (
-    item.id !== question.id
-    && item.topic === question.topic
-    && !blockedAnswers.has(getAnswerKey(item.answer))
-  ));
-  const otherTopics = QUESTIONS.filter((item) => (
-    item.id !== question.id
-    && item.topic !== question.topic
-    && !blockedAnswers.has(getAnswerKey(item.answer))
-  ));
   const uniqueCandidates = [];
   const seen = new Set(blockedAnswers);
+  const candidateGroups = [
+    QUESTIONS.filter((item) => (
+      item.id !== question.id
+      && !state.completedQuestionIds.has(item.id)
+      && item.topic === question.topic
+      && !blockedAnswers.has(getAnswerKey(item.answer))
+    )),
+    QUESTIONS.filter((item) => (
+      item.id !== question.id
+      && !state.completedQuestionIds.has(item.id)
+      && item.topic !== question.topic
+      && !blockedAnswers.has(getAnswerKey(item.answer))
+    )),
+    QUESTIONS.filter((item) => (
+      item.id !== question.id
+      && state.completedQuestionIds.has(item.id)
+      && !blockedAnswers.has(getAnswerKey(item.answer))
+    )),
+  ];
 
-  shuffle(sameTopic).concat(shuffle(otherTopics)).forEach((item) => {
+  candidateGroups.flatMap((group) => shuffle(group)).forEach((item) => {
     const answerKey = getAnswerKey(item.answer);
     if (!seen.has(answerKey)) {
       seen.add(answerKey);
@@ -259,23 +268,46 @@ function buildCandidateDeck(question) {
 function renderQuestion() {
   const question = state.session[state.index];
   state.candidateDeck = buildCandidateDeck(question);
-  state.candidateIndex = 0;
+  state.selectedCandidate = null;
 
   els.topicBadge.textContent = state.selectedTopic.name;
   els.questionCounter.textContent = `Kart çifti ${state.index + 1} / ${state.session.length}`;
   els.questionText.textContent = question.prompt;
-  renderCandidate();
+  renderCandidateCards();
 }
 
-function renderCandidate() {
-  els.candidateCounter.textContent = `Kart ${state.candidateIndex + 1} / ${state.candidateDeck.length}`;
-  els.candidateText.textContent = state.candidateDeck[state.candidateIndex];
-  els.candidateCard.classList.remove("is-correct", "is-wrong");
+function renderCandidateCards() {
+  els.answerGrid.innerHTML = "";
+  state.candidateDeck.forEach((candidate) => {
+    const button = document.createElement("button");
+    button.className = "answer-card";
+    button.type = "button";
+    button.dataset.answer = candidate;
+    button.textContent = candidate;
+    button.setAttribute("aria-pressed", "false");
+    button.addEventListener("click", () => selectCandidateCard(button));
+    els.answerGrid.append(button);
+  });
+
+  els.definitionCard.classList.remove("is-wrong");
   els.feedbackPanel.hidden = true;
   els.feedbackPanel.classList.remove("is-wrong");
-  els.noMatchButton.disabled = false;
+  els.matchButton.disabled = true;
+}
+
+function selectCandidateCard(selectedButton) {
+  els.answerGrid.querySelectorAll(".answer-card").forEach((button) => {
+    button.classList.remove("is-selected", "is-wrong");
+    button.setAttribute("aria-pressed", "false");
+  });
+
+  state.selectedCandidate = selectedButton.dataset.answer;
+  selectedButton.classList.add("is-selected");
+  selectedButton.setAttribute("aria-pressed", "true");
+  els.definitionCard.classList.remove("is-wrong");
+  els.feedbackPanel.hidden = true;
+  els.feedbackPanel.classList.remove("is-wrong");
   els.matchButton.disabled = false;
-  els.noMatchButton.focus({ preventScroll: true });
 }
 
 function updateScore() {
@@ -290,20 +322,26 @@ function rememberMistake(question) {
   }
 }
 
-function showDecisionError(question, actualMatch) {
+function showDecisionError(question) {
+  const selectedButton = els.answerGrid.querySelector(".answer-card.is-selected");
   state.errors += 1;
   updateScore();
   rememberMistake(question);
-  els.candidateCard.classList.add("is-wrong");
+  selectedButton?.classList.add("is-wrong");
+  selectedButton?.classList.remove("is-selected");
+  selectedButton?.setAttribute("aria-pressed", "false");
+  els.definitionCard.classList.add("is-wrong");
+  state.selectedCandidate = null;
+  els.matchButton.disabled = true;
   els.feedbackPanel.hidden = false;
   els.feedbackPanel.classList.add("is-wrong");
   els.feedbackTitle.textContent = "Bu çift olmadı";
-  els.feedbackText.textContent = actualMatch
-    ? "Aslında doğru çifti bulmuştun. Bu iki kartı eşleştir."
-    : "Bu cevap başka bir tanıma ait. Yeni bir cevap kartı göster.";
+  els.feedbackText.textContent = "Bu cevap başka bir tanıma ait. Başka bir cevap kartı seçip yeniden dene.";
 }
 
 function completeDefinition() {
+  const question = state.session[state.index];
+  state.completedQuestionIds.add(question.id);
   state.solved += 1;
   updateScore();
 
@@ -316,23 +354,21 @@ function completeDefinition() {
   renderQuestion();
 }
 
-function judgeCandidate(userSaysMatch) {
+function judgeCandidate() {
   const question = state.session[state.index];
-  const candidate = state.candidateDeck[state.candidateIndex];
+  const candidate = state.selectedCandidate;
+  if (!candidate) {
+    return;
+  }
+
   const actualMatch = normalizeAnswer(candidate) === normalizeAnswer(question.answer);
 
-  if (userSaysMatch !== actualMatch) {
-    showDecisionError(question, actualMatch);
+  if (!actualMatch) {
+    showDecisionError(question);
     return;
   }
 
-  if (actualMatch) {
-    completeDefinition();
-    return;
-  }
-
-  state.candidateIndex += 1;
-  renderCandidate();
+  completeDefinition();
 }
 
 function showResults() {
@@ -368,21 +404,15 @@ function retryMistakes() {
 }
 
 function handleKeyboard(event) {
-  if (!els.quizPanel.hidden && event.key === "ArrowLeft") {
-    event.preventDefault();
-    judgeCandidate(false);
-    return;
-  }
   if (!els.quizPanel.hidden && event.key === "ArrowRight") {
     event.preventDefault();
-    judgeCandidate(true);
+    judgeCandidate();
   }
 }
 
 els.startButton.addEventListener("click", () => startSession());
 els.restartButton.addEventListener("click", showSetup);
-els.noMatchButton.addEventListener("click", () => judgeCandidate(false));
-els.matchButton.addEventListener("click", () => judgeCandidate(true));
+els.matchButton.addEventListener("click", judgeCandidate);
 els.retryMistakesButton.addEventListener("click", retryMistakes);
 els.newSessionButton.addEventListener("click", showSetup);
 document.addEventListener("keydown", handleKeyboard);

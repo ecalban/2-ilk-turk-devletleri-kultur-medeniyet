@@ -61,27 +61,27 @@
         </div>
 
         <div class="match-stage">
-          <article class="match-card definition-card">
+          <article id="definitionCard" class="match-card definition-card">
             <p class="card-label">TANIM KARTI</p>
             <h2 id="questionText"></h2>
           </article>
 
           <div class="match-link" aria-hidden="true"><span>?</span></div>
 
-          <article id="candidateCard" class="match-card candidate-card" aria-live="polite">
-            <div class="candidate-heading">
-              <p class="card-label">CEVAP KARTI</p>
-              <span id="candidateCounter" class="candidate-counter">Kart 1 / 10</span>
+          <section class="answers-section" aria-labelledby="answersTitle">
+            <div class="answers-heading">
+              <div>
+                <p class="card-label">CEVAP KARTLARI</p>
+                <h2 id="answersTitle">Eşleşen kartı seç</h2>
+              </div>
+              <span>10 karttan biri</span>
             </div>
-            <h3 id="candidateText"></h3>
-          </article>
+            <div id="answerGrid" class="answer-grid"></div>
+          </section>
         </div>
 
         <div class="decision-grid" aria-label="Eşleşme kararı">
-          <button id="noMatchButton" class="decision-button no-match-button" type="button">
-            Başka kart göster
-          </button>
-          <button id="matchButton" class="decision-button match-button" type="button">
+          <button id="matchButton" class="decision-button match-button" type="button" disabled>
             Bu ikisini eşleştir
           </button>
         </div>
@@ -105,10 +105,10 @@
       </section>
 
       <footer class="keyboard-tip">
-        <span>İpucu: <kbd>←</kbd> başka kart, <kbd>→</kbd> eşleştir.</span>
+        <span>İpucu: Bir cevap seç, <kbd>→</kbd> ile eşleştir.</span>
       </footer>
     </main>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=20260616-grid"></script>
   </body>
 </html>
